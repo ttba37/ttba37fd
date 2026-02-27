@@ -2,166 +2,37 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>TTBA37FD Online</title>
-
+<title>Test</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<style>
-body{font-family:Arial;background:#1e1e2f;color:white;text-align:center}
-.card{background:#2c2c3c;padding:20px;margin:20px auto;width:90%;max-width:500px;border-radius:10px}
-input,button{width:100%;padding:10px;margin:5px 0;border-radius:5px;border:none}
-button{background:#4CAF50;color:white;font-weight:bold;cursor:pointer}
-.hidden{display:none}
-</style>
 </head>
-
 <body>
 
-<!-- LOGIN -->
-<div class="card" id="loginPage">
-<h2>Login</h2>
-<input type="email" id="loginEmail" placeholder="Email">
-<input type="password" id="loginPass" placeholder="Password">
+<h2>Login Test</h2>
+<input type="email" id="email" placeholder="Email">
+<input type="password" id="pass" placeholder="Password">
 <button onclick="login()">Login</button>
-</div>
-
-<!-- USER DASHBOARD -->
-<div class="card hidden" id="userDashboard">
-<h2>User Dashboard</h2>
-<button onclick="showBooking()">Book Ticket</button>
-<button onclick="loadUserStatus()">My Tickets</button>
-<button onclick="logout()">Logout</button>
-<div id="userArea"></div>
-</div>
-
-<!-- ADMIN DASHBOARD -->
-<div class="card hidden" id="adminDashboard">
-<h2>Admin Dashboard</h2>
-<button onclick="loadAllTickets()">View Requests</button>
-<button onclick="logout()">Logout</button>
-<div id="adminArea"></div>
-</div>
 
 <script>
-
 const supabase = window.supabase.createClient(
 "https://mcgatukwzoliwvxmcszx.supabase.co",
 "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZ2F0dWt3em9saXd2eG1jc3p4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNTk1ODMsImV4cCI6MjA4NzczNTU4M30.Vjrx2h4xDW8z0VvnAE6aMOeA46pS9GXBKoDDKJLQQWY"
 );
 
-let currentEmail="";
-
-/* LOGIN */
 async function login(){
-  let email=document.getElementById("loginEmail").value.trim();
-  let pass=document.getElementById("loginPass").value.trim();
+  const email=document.getElementById("email").value;
+  const pass=document.getElementById("pass").value;
 
-  const { data, error } = await supabase.auth.signInWithPassword({
+  const { error } = await supabase.auth.signInWithPassword({
     email: email,
     password: pass
   });
 
   if(error){
     alert("Login Failed");
-    return;
-  }
-
-  currentEmail=email;
-
-  document.getElementById("loginPage").classList.add("hidden");
-
-  if(email==="admin@ttba.com"){
-    document.getElementById("adminDashboard").classList.remove("hidden");
   }else{
-    document.getElementById("userDashboard").classList.remove("hidden");
+    alert("Login Success");
   }
 }
-
-/* LOGOUT */
-async function logout(){
-  await supabase.auth.signOut();
-  location.reload();
-}
-
-/* USER BOOKING */
-function showBooking(){
-  document.getElementById("userArea").innerHTML=`
-    <input id="from" placeholder="From">
-    <input id="to" placeholder="To">
-    <input id="date" type="date">
-    <input id="rank" placeholder="Rank">
-    <button onclick="sendRequest()">Submit</button>
-  `;
-}
-
-async function sendRequest(){
-  let from=document.getElementById("from").value;
-  let to=document.getElementById("to").value;
-  let date=document.getElementById("date").value;
-  let rank=document.getElementById("rank").value;
-
-  const { error } = await supabase.from("tickets").insert([{
-    user_email: currentEmail,
-    from_station: from,
-    to_station: to,
-    journey_date: date,
-    rank: rank,
-    status:"pending"
-  }]);
-
-  if(error){
-    alert("Insert Failed");
-  }else{
-    alert("Ticket Submitted Successfully ✅");
-  }
-}
-
-/* USER STATUS */
-async function loadUserStatus(){
-  const { data } = await supabase
-    .from("tickets")
-    .select("*")
-    .eq("user_email",currentEmail);
-
-  let html="";
-  data.forEach(t=>{
-    html+=`${t.from_station} → ${t.to_station} | ${t.status}<br><br>`;
-  });
-
-  document.getElementById("userArea").innerHTML=html;
-}
-
-/* ADMIN VIEW */
-async function loadAllTickets(){
-  const { data } = await supabase.from("tickets").select("*");
-
-  let html="";
-  data.forEach(t=>{
-    html+=`
-      ${t.user_email} | ${t.from_station} → ${t.to_station} | ${t.status}
-      <button onclick="approve('${t.id}')">Approve</button>
-      <button onclick="reject('${t.id}')">Reject</button>
-      <br><br>
-    `;
-  });
-
-  document.getElementById("adminArea").innerHTML=html;
-}
-
-async function approve(id){
-  await supabase.from("tickets")
-  .update({status:"approved"})
-  .eq("id",id);
-  loadAllTickets();
-}
-
-async function reject(id){
-  await supabase.from("tickets")
-  .update({status:"rejected"})
-  .eq("id",id);
-  loadAllTickets();
-}
-
 </script>
 
 </body>
