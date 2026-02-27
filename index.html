@@ -1,50 +1,143 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>TTBA37FD Login</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
-
-<h2>TTBA37FD - Railway Ticket System</h2>
-
-<input type="email" id="email" placeholder="Email"><br><br>
-<input type="password" id="password" placeholder="Password"><br><br>
-
-<button onclick="login()">Login</button>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
 const supabase = window.supabase.createClient(
-  "xauglxafzcmrqoncprvq",
-  "sb_publishable__ERFLSimXSHg7EOdQrestA_7GOpQjpw"
+  "https://mcgatukwzoliwvxmcszx.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jZ2F0dWt3em9saXd2eG1jc3p4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxNTk1ODMsImV4cCI6MjA4NzczNTU4M30.Vjrx2h4xDW8z0VvnAE6aMOeA46pS9GXBKoDDKJLQQWY"
 );
 
-async function login() {
+let currentUser = "";
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: document.getElementById("email").value,
-    password: document.getElementById("password").value
-  });
+/* ================= LOGIN ================= */
 
-  if (error) {
-    alert(error.message);
+async function login(){
+  let u = document.getElementById("loginUser").value.trim();
+  let p = document.getElementById("loginPass").value.trim();
+
+  if(u === "admin" && p === "admin@1234"){
+    showAdminDashboard();
+    loadAllTickets();
     return;
   }
 
-  // Check role
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", data.user.id)
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("username", u)
+    .eq("password", p)
     .single();
 
-  if(profile.role === "admin"){
-    window.location = "admin.html";
+  if(data){
+    currentUser = u;
+    showUserDashboard();
   } else {
-    window.location = "user.html";
+    alert("Invalid Login");
   }
 }
-</script>
 
-</body>
-</html>
+/* ================= CREATE USER (ADMIN) ================= */
+
+async function createUser(){
+  let u = document.getElementById("newUsername").value.trim();
+  let p = document.getElementById("newPassword").value.trim();
+
+  const { error } = await supabase
+    .from("users")
+    .insert([{ username: u, password: p, role: "user" }]);
+
+  if(error){
+    alert("Error creating user");
+  } else {
+    alert("User Created");
+  }
+}
+
+/* ================= SEND REQUEST ================= */
+
+async function sendRequest(){
+  const { error } = await supabase
+    .from("tickets")
+    .insert([{
+      username: currentUser,
+      name: document.getElementById("name").value,
+      rank: document.getElementById("rank").value,
+      phone: document.getElementById("phone").value,
+      email: document.getElementById("email").value,
+      journey_date: document.getElementById("journeyDate").value,
+      from_station: document.getElementById("fromStation").value,
+      to_station: document.getElementById("toStation").value,
+      train_no: document.getElementById("trainNo").value,
+      train_name: document.getElementById("trainName").value,
+      status: "Pending"
+    }]);
+
+  if(error){
+    alert("Error sending request");
+  } else {
+    alert("Request Sent Successfully");
+  }
+}
+
+/* ================= LOAD USER STATUS ================= */
+
+async function loadUserStatus(){
+  const { data } = await supabase
+    .from("tickets")
+    .select("*")
+    .eq("username", currentUser);
+
+  let area = document.getElementById("statusArea");
+  area.innerHTML = "";
+
+  data.forEach(t => {
+    area.innerHTML += `
+      <div>
+        ${t.from_station} → ${t.to_station} |
+        <b>${t.status}</b>
+      </div><hr>
+    `;
+  });
+}
+
+/* ================= ADMIN LOAD ALL TICKETS ================= */
+
+async function loadAllTickets(){
+  const { data } = await supabase
+    .from("tickets")
+    .select("*");
+
+  let area = document.getElementById("adminRequests");
+  area.innerHTML = "";
+
+  data.forEach(t => {
+    area.innerHTML += `
+      <div>
+        <b>User:</b> ${t.username}<br>
+        ${t.from_station} → ${t.to_station}<br>
+        Status: ${t.status}<br>
+        <button onclick="approveTicket('${t.id}')">Approve</button>
+        <button onclick="cancelTicket('${t.id}')">Cancel</button>
+        <hr>
+      </div>
+    `;
+  });
+}
+
+async function approveTicket(id){
+  await supabase
+    .from("tickets")
+    .update({ status: "Approved" })
+    .eq("id", id);
+
+  loadAllTickets();
+}
+
+async function cancelTicket(id){
+  await supabase
+    .from("tickets")
+    .update({ status: "Cancelled" })
+    .eq("id", id);
+
+  loadAllTickets();
+}
+      </script>
